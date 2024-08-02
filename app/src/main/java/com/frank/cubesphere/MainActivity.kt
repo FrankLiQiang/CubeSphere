@@ -24,53 +24,49 @@ val originalCubeBMP = arrayOfNulls<Bitmap>(6)
 lateinit var mainActivity: MainActivity
 
 class MainActivity : ComponentActivity() {
-    private external fun setEYE(
-        width: Int,
-        height: Int,
+    private external fun initialization(
+        screenWidth: Int,
+        screenHeight: Int,
+        bgW: Int,
+        bgH: Int,
+        cubeW: Int,
+        ballRawWidth: Int,
+        ballRawHeight: Int,
+        widthP: Int,
         eyeX: Float,
         eyeY: Float,
         eyeZ: Float,
-        bgW: Int,
-        bgH: Int,
-        bg: ByteArray?
+        z: Float,
+        cx: Float,
+        cy: Float,
+        cz: Float,
+        R: Float,
+        r: Float,
     )
 
-    private external fun endDraw()
+    private external fun ReadPics(
+        pBGData: ByteArray?,
+        pSrcData1: ByteArray?,
+        pSrcData2: ByteArray?,
+        pSrcData3: ByteArray?,
+        pSrcData4: ByteArray?,
+        pSrcData5: ByteArray?,
+        pSrcData6: ByteArray?,
+        pBallData: ByteArray?,
+        pBallDataF: ByteArray?,
+        pBallDataM: ByteArray?,
+        pOutBall: ByteArray?,
+        pOutCube: ByteArray?,
+    )
+
     external fun isCubeVisible(
         xE: Float, yE: Float, zE: Float,
         xF: Float, yF: Float, zF: Float,
         xG: Float, yG: Float, zG: Float
     ): Int
 
-    external fun initializationCube(
-        width00: Int,
-        height00: Int,
-        in1: ByteArray?,
-        in2: ByteArray?,
-        in3: ByteArray?,
-        in4: ByteArray?,
-        in5: ByteArray?,
-        in6: ByteArray?,
-        out: ByteArray?
-    )
-
     external fun transformsCube(
         count: Int, index: IntArray?, fPointsX: Array<FloatArray>?, fPointsY: Array<FloatArray>?
-    )
-
-    external fun initializationBall(z: Float, cx: Float, cy: Float, cz: Float)
-
-    external fun initializationBall2(
-        width: Int,
-        height: Int,
-        R: Float,
-        r: Float,
-        `in`: ByteArray?,
-        widthP: Int,
-        heightP: Int,
-        inF: ByteArray?,
-        inM: ByteArray?,
-        out: ByteArray?
     )
 
     external fun transformsBall(
@@ -120,22 +116,45 @@ class MainActivity : ComponentActivity() {
         backgroundBMP = (resources.getDrawable(R.drawable.bg) as BitmapDrawable).bitmap
         backgroundBmp2byte()
 
-        setEYE(
+        createCube()
+        ballInit()
+
+        initialization(
             Common._screenWidth,
             Common._screenHeight / 2,
+            backgroundBMP!!.width,
+            backgroundBMP!!.height,
+            originalBallBMP.width,
+            originalBallBMP.height,
+            cubeWidth,
+            fatherBMP.width,
             Common.Eye.x,
             Common.Eye.y,
             Common.Eye.z,
-            backgroundBMP!!.width,
-            backgroundBMP!!.height,
-            backgroundByteArray
+            Common.DepthZ,
+            BallCenter.x,
+            BallCenter.y,
+            BallCenter.z,
+            ballR,
+            r,
         )
-        createCube()
+        ReadPics(
+            backgroundByteArray,
+            originalCubeByteArray[0],
+            originalCubeByteArray[1],
+            originalCubeByteArray[2],
+            originalCubeByteArray[3],
+            originalCubeByteArray[4],
+            originalCubeByteArray[5],
+            ballByteArray,
+            fatherByteArray,
+            motherByteArray,
+            newBallByteArray,
+            newCubeByteArray,
+        )
+
         drawSolid()
-
-        ballInit()
         drawPicBall()
-
         startDrawTimer()
 
         setContent {
@@ -178,8 +197,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onBackPressed() {
-        endDraw()
-//        stopDrawTimer()
+        stopDrawTimer()
         mediaPlayer?.release()
         finish()
         exitProcess(0)

@@ -12,7 +12,7 @@ using namespace std;
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
 const double EPSILON = 0.0000000001, PI = 3.1416f;
-static int screenWidth, screenHeight, cubeWidth, cubeHeight, parentWidth, BGWidth, BGHeight2;
+static int screenWidth, screenHeight, cubeWidth, parentWidth, BGWidth, BGHeight2;
 static double factorA = 0, factorB = 0, factorC = 0, factorD = 0;
 static float DepthZ, CenterX, CenterY, CenterZ, Center_x, Center_y, HPI, W2PI, W0, R2, R22, r, FirstR, sx, sy, parent_r;
 static jbyte *CubeBuf[6], *BallBuf, *FatherBuf, *MotherBuf, *BGBufIn, *CubeBufOut, *BallBufOut;
@@ -211,6 +211,8 @@ double getLongitude(Vector3d &P, Vector3d &A, Vector3d &M) {
     return acos(c);
 }
 
+float cross(Vector2d a, Vector2d b) { return a.x * b.y - a.y * b.x; }
+
 Vector2d invBilinear(Vector2d p, int index) {
 
     Vector2d a = FacePoints[index][1];
@@ -256,8 +258,6 @@ struct quat {
     Vector2d points[4];
 };
 
-float cross(Vector2d a, Vector2d b) { return a.x * b.y - a.y * b.x; }
-
 bool inquat(int index, float x, float y) {
     Vector2d v1, v2;
     v1.x = FacePoints[index][1].x - FacePoints[index][0].x;
@@ -296,10 +296,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initial
                                                                                         const jint h,
                                                                                         const jint bgW, 
                                                                                         const jint bgH,
-                                                                                        const jint cubeW,
-                                                                                        const jint cubeH,
                                                                                         const jint ballRawWidth,
                                                                                         const jint ballRawHeight,
+                                                                                        const jint cubeW,
                                                                                         const jint widthP,
                                                                                         const jfloat e_x, 
                                                                                         const jfloat e_y, 
@@ -323,10 +322,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initial
     CenterZ = cz;
     BallCenter.set(CenterX, CenterY, CenterZ);
     cubeWidth = cubeW;
-    cubeHeight = cubeH;
     HPI = ballRawHeight / PI;
     W0 = ballRawWidth;
-    W2PI = ballRawWidth / PI / 2f;
+    W2PI = ballRawWidth / PI / 2.0f;
     r = r0, FirstR = r;
     R22 = R0 * R0;
     R2 = 2 * R22;
@@ -404,12 +402,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeV
     Vector3d N = EF.Cross(EG);
     Vector3d V = EYE - E;
 
-    // return N.Dot(V) <= 0;
-    if (N.Dot(V) > 0) {
-        return 0;
-    } else {
-        return 1;
-    }
+    return N.Dot(V) <= 0;
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transformsBall(JNIEnv *env, jobject obj,
@@ -468,7 +461,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                 if (latitude < alpha1) {
                     int x_index = (round)(parent_r - cos(longitude + PI) * parent_r * (latitude / alpha1));
                     int y_index = (round)(parent_r - sin(longitude + PI) * parent_r * (latitude / alpha1));
-                    original_point = (y_index * parent_width + x_index) * 4;
+                    original_point = (y_index * parentWidth + x_index) * 4;
                     *(BallBufOut + pixel_point) = *(FatherBuf + original_point);
                     *(BallBufOut + pixel_point + 1) = *(FatherBuf + original_point + 1);
                     *(BallBufOut + pixel_point + 2) = *(FatherBuf + original_point + 2);
@@ -476,7 +469,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                 } else if (latitude > alpha2) {
                     int x_index = (round)(parent_r - cos(longitude) * parent_r * ((PI - latitude) / (PI - alpha2)));
                     int y_index = (round)(parent_r - sin(longitude) * parent_r * ((PI - latitude) / (PI - alpha2)));
-                    original_point = (y_index * parent_width + x_index) * 4;
+                    original_point = (y_index * parentWidth + x_index) * 4;
                     *(BallBufOut + pixel_point) = *(MotherBuf + original_point);
                     *(BallBufOut + pixel_point + 1) = *(MotherBuf + original_point + 1);
                     *(BallBufOut + pixel_point + 2) = *(MotherBuf + original_point + 2);
@@ -534,7 +527,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                     isInside = true;
                     Vector2d v2 = invBilinear(p, i);
                     X = (int) ((float) cubeWidth * v2.x);
-                    Y = (int) ((float) cubeHeight * v2.y);
+                    Y = (int) ((float) cubeWidth * v2.y);
                     original_point = (Y * cubeWidth + X) * 4;
                     *(CubeBufOut + pixel_point) = *(CubeBuf[picIndex[i]] + original_point);
                     *(CubeBufOut + pixel_point + 1) = *(CubeBuf[picIndex[i]] + original_point + 1);

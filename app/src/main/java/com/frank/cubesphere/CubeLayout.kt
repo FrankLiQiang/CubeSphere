@@ -25,6 +25,7 @@ var StartX = 0f
 var StartY = 0f
 var EndX = 0f
 var EndY = 0f
+var cubeWidth = 0
 val FaceCount = 6
 var isSingle = true
 val PointCount = 8
@@ -169,14 +170,7 @@ fun createCube() {
     originalCubeBMP[3] = (mainActivity.resources.getDrawable(R.drawable.erjie) as BitmapDrawable).bitmap
     originalCubeBMP[4] = (mainActivity.resources.getDrawable(R.drawable.me) as BitmapDrawable).bitmap
     originalCubeBMP[5] = (mainActivity.resources.getDrawable(R.drawable.juan) as BitmapDrawable).bitmap
-    val cubeWidth = originalCubeBMP[0]?.width
-    val cubeHeight = originalCubeBMP[0]?.height
-    newCubeBMP = Bitmap.createBitmap(
-        Common._screenWidth,
-        Common._screenHeight / 2,
-        Bitmap.Config.ARGB_8888
-    )
-    bmp2byteCube()
+    cubeWidth = originalCubeBMP[0]!!.width
     pX = FloatArray(PointCount)
     pY = FloatArray(PointCount)
     pZ = FloatArray(PointCount)
@@ -203,19 +197,6 @@ fun createCube() {
         p[i] = Common.PointF()
     }
     convert()
-    if (cubeWidth != null && cubeHeight != null) {
-        mainActivity.initializationCube(
-            cubeWidth,
-            cubeHeight,
-            originalCubeByteArray[0],
-            originalCubeByteArray[1],
-            originalCubeByteArray[2],
-            originalCubeByteArray[3],
-            originalCubeByteArray[4],
-            originalCubeByteArray[5],
-            newCubeByteArray
-        )
-    }
 }
 
 fun bmp2byteCube() {

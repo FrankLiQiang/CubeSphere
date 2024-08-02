@@ -105,9 +105,13 @@ fun ballInit() {
 }
 
 fun createBall() {
+    resetBall()
+    bmp2byteBall()
+}
+
+fun resetBall() {
     ballR = Common._screenWidth / 2f
     BallCenter.reset(Common._screenWidth / 2f, Common._screenHeight / 4f, -ballR)
-    mainActivity.initializationBall(Common.DepthZ, BallCenter.x, BallCenter.y, BallCenter.z)
     Arctic.reset(BallCenter.x, BallCenter.y - ballR, BallCenter.z)
     Meridian.reset(BallCenter.x - ballR, BallCenter.y, BallCenter.z)
     resetPointF(ArcticF, Arctic)
@@ -116,21 +120,6 @@ fun createBall() {
     Meridian0.reset(BallCenter.x - ballR, BallCenter.y, BallCenter.z)
     resetPointF(Meridian0F, Meridian0)
     r = BallCenter.x - Meridian0F.x
-    newBallBMP =
-        Bitmap.createBitmap(Common._screenWidth, Common._screenHeight / 2, Bitmap.Config.ARGB_8888)
-    bmp2byteBall()
-    mainActivity.initializationBall2(
-        originalBallBMP.width,
-        originalBallBMP.height,
-        ballR,
-        r,
-        ballByteArray,
-        fatherBMP.width,
-        motherBMP.height,
-        fatherByteArray,
-        motherByteArray,
-        newBallByteArray
-    )
 }
 
 fun bmp2byteBall() {
@@ -140,10 +129,6 @@ fun bmp2byteBall() {
     buf = ByteBuffer.allocate(bytes)
     originalBallBMP.copyPixelsToBuffer(buf)
     ballByteArray = buf.array()
-    bytes = newBallBMP.byteCount
-    buf = ByteBuffer.allocate(bytes)
-    newBallBMP.copyPixelsToBuffer(buf)
-    newBallByteArray = buf.array()
     bytes = fatherBMP.byteCount
     buf = ByteBuffer.allocate(bytes)
     fatherBMP.copyPixelsToBuffer(buf)
@@ -152,6 +137,13 @@ fun bmp2byteBall() {
     buf = ByteBuffer.allocate(bytes)
     motherBMP.copyPixelsToBuffer(buf)
     motherByteArray = buf.array()
+
+    newBallBMP =
+        Bitmap.createBitmap(Common._screenWidth, Common._screenHeight / 2, Bitmap.Config.ARGB_8888)
+    bytes = newBallBMP.byteCount
+    buf = ByteBuffer.allocate(bytes)
+    newBallBMP.copyPixelsToBuffer(buf)
+    newBallByteArray = buf.array()
 }
 
 fun drawPicBall() {

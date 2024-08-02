@@ -1,6 +1,5 @@
 package com.frank.cubesphere
 
-import android.os.Message
 import java.util.Timer
 import java.util.TimerTask
 
@@ -42,7 +41,7 @@ fun draw() {
             Timer().schedule(taskB, 0)
         } else {
             if (delayB > 0) {
-                createBall()
+                resetBall()
             }
             delayB = 0
             turnBall()
