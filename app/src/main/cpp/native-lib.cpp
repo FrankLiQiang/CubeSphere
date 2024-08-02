@@ -18,15 +18,15 @@ __attribute__((unused)) static int width, height, width00, height00, parent_widt
 static double factorA = 0, factorB = 0, factorC = 0, factorD = 0;
 const double EPSILON = 0.0000000001;
 static jbyte *BGBufOut;
-static jbyte* CubeBuf[6];
+static jbyte *CubeBuf[6];
 static jbyte *CubeBufOut;
-static jbyte* BallBuf;
-static jbyte* FatherBuf;
-static jbyte* MotherBuf;
+static jbyte *BallBuf;
+static jbyte *FatherBuf;
+static jbyte *MotherBuf;
 static jbyte *BallBufOut;
 static jbyteArray pCubeOutData, pBallOutData, pAllBGData;
-static jbyteArray pCubeSrcData1, pCubeSrcData2, pCubeSrcData3
-, pCubeSrcData4, pCubeSrcData5, pCubeSrcData6, pBallSrcData, pFatherSrcData, pMotherSrcData;
+static jbyteArray pCubeSrcData1, pCubeSrcData2, pCubeSrcData3, pCubeSrcData4, pCubeSrcData5, pCubeSrcData6
+        , pBallSrcData, pFatherSrcData, pMotherSrcData;
 static float sx, sy, parent_r;
 static int BGWidth, BGHeight2;
 
@@ -193,16 +193,14 @@ Vector3d GetFootOfPerpendicular(const Vector3d &p0, const Vector3d &p1, const Ve
     return retVal;
 }
 
-void
-getPanel(Vector3d &p1, Vector3d &p2, Vector3d &p3, double &a, double &b, double &c, double &d) {
+void getPanel(Vector3d &p1, Vector3d &p2, Vector3d &p3, double &a, double &b, double &c, double &d) {
     a = ((p2.y - p1.y) * (p3.z - p1.z) - (p2.z - p1.z) * (p3.y - p1.y));
     b = ((p2.z - p1.z) * (p3.x - p1.x) - (p2.x - p1.x) * (p3.z - p1.z));
     c = ((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x));
     d = (0 - (a * p1.x + b * p1.y + c * p1.z));
 }
 
-void
-getBallShowCenter() {
+void getBallShowCenter() {
     Center_x = width / 2;
     Center_y = height / 2;        //if the 2D Ball center and screen center is same point.
     //Center_y = (EYE.z - DepthZ) * ((BallCenter.y - EYE.y) / (EYE.z - BallCenter.z));
@@ -227,8 +225,87 @@ double getLongitude(Vector3d &P, Vector3d &A, Vector3d &M) {
     return acos(c);
 }
 
-extern "C"
-JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initializationBall(JNIEnv *env, jobject obj,
+Vector2d invBilinear(Vector2d p, int index) {
+
+    Vector2d a = FacePoints[index][1];
+    Vector2d b = FacePoints[index][0];
+    Vector2d c = FacePoints[index][3];
+    Vector2d d = FacePoints[index][2];
+
+    Vector2d e = b - a;
+    Vector2d f = d - a;
+    Vector2d g = a - b + c - d;
+    Vector2d h = p - a;
+
+    float k2 = cross(g, f);
+    float k1 = cross(e, f) + cross(h, g);
+    float k0 = cross(h, e);
+
+    if( abs(k2) < 0.001 )
+    {
+        return Vector2d( (h.x*k1+f.x*k0)/(e.x*k1-g.x*k0), -k0/k1 );
+    }
+
+    float w = k1 * k1 - 4.0 * k0 * k2;
+    if (w < 0.0) return Vector2d(-1, 0);
+
+    w = sqrt(w);
+
+    float v = (-k1 - w) / (2.0 * k2);
+    float u = (h.x - f.x * v) / (e.x + g.x * v);
+
+    if (v < 0.0 || v > 1.0 || u < 0.0 || u > 1.0) {
+        v = (-k1 + w) / (2.0 * k2);
+        u = (h.x - f.x * v) / (e.x + g.x * v);
+    }
+    if (v < 0.0 || v > 1.0 || u < 0.0 || u > 1.0) {
+        v = -1.0;
+        u = -1.0;
+    }
+
+    return Vector2d(u, v);
+}
+
+struct quat {
+    Vector2d points[4];
+};
+
+float cross(Vector2d a, Vector2d b) { return a.x * b.y - a.y * b.x; }
+
+bool inquat(int index, float x, float y) {
+    Vector2d v1, v2;
+    v1.x = FacePoints[index][1].x - FacePoints[index][0].x;
+    v1.y = FacePoints[index][1].y- FacePoints[index][0].y;
+    v2.x = x - FacePoints[index][0].x;
+    v2.y = y - FacePoints[index][0].y;
+    if (cross(v2, v1) < 0) {
+        return false;
+    }
+    v1.x = FacePoints[index][2].x - FacePoints[index][1].x;
+    v1.y = FacePoints[index][2].y- FacePoints[index][1].y;
+    v2.x = x - FacePoints[index][1].x;
+    v2.y = y - FacePoints[index][1].y;
+    if (cross(v2, v1) < 0) {
+        return false;
+    }
+    v1.x = FacePoints[index][3].x - FacePoints[index][2].x;
+    v1.y = FacePoints[index][3].y- FacePoints[index][2].y;
+    v2.x = x - FacePoints[index][2].x;
+    v2.y = y - FacePoints[index][2].y;
+    if (cross(v2, v1) < 0) {
+        return false;
+    }
+    v1.x = FacePoints[index][0].x - FacePoints[index][3].x;
+    v1.y = FacePoints[index][0].y- FacePoints[index][3].y;
+    v2.x = x - FacePoints[index][3].x;
+    v2.y = y - FacePoints[index][3].y;
+    if (cross(v2, v1) < 0) {
+        return false;
+    }
+    return true;
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initializationBall(JNIEnv *env, jobject obj,
                                                                            const jfloat Z,
                                                                            const jfloat cx,
                                                                            const jfloat cy,
@@ -386,8 +463,7 @@ JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transformsBall(JNI
     return 0;
 }
 
-extern "C"
-JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_setEYE(JNIEnv *env, jobject obj,
+extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_setEYE(JNIEnv *env, jobject obj,
                                                                  const jint w, const jint h,
                                                                  const jfloat e_x, const jfloat e_y, const jfloat e_z,
                                                                  const jint bgW, const jint bgH,
@@ -403,8 +479,7 @@ JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_setEYE(JNIEnv *env
     BGBufOut = env->GetByteArrayElements(pBGData, 0);
 }
 
-extern "C"
-JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeVisible(JNIEnv *env, jobject obj,
+extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeVisible(JNIEnv *env, jobject obj,
                                                                       const jfloat xE,
                                                                       const jfloat yE,
                                                                       const jfloat zE,
@@ -423,6 +498,7 @@ JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeVisible(JNIE
     Vector3d N = EF.Cross(EG);
     Vector3d V = EYE - E;
 
+    // return N.Dot(V) <= 0;
     if (N.Dot(V) > 0) {
         return 0;
     } else {
@@ -430,9 +506,7 @@ JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeVisible(JNIE
     }
 }
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_frank_cubesphere_MainActivity_initializationCube(JNIEnv *env, jobject obj,
+extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initializationCube(JNIEnv *env, jobject obj,
                                                           const jint w00,
                                                           const jint h00,
                                                           const jbyteArray pSrcData1,
@@ -461,88 +535,7 @@ Java_com_frank_cubesphere_MainActivity_initializationCube(JNIEnv *env, jobject o
     pCubeOutData = pOutData;
 }
 
-struct quat {
-    Vector2d points[4];
-};
-
-float cross(Vector2d a, Vector2d b) { return a.x * b.y - a.y * b.x; }
-
-bool inquat(int index, float x, float y) {
-    Vector2d v1, v2;
-    v1.x = FacePoints[index][1].x - FacePoints[index][0].x;
-    v1.y = FacePoints[index][1].y- FacePoints[index][0].y;
-    v2.x = x - FacePoints[index][0].x;
-    v2.y = y - FacePoints[index][0].y;
-    if (cross(v2, v1) < 0) {
-        return false;
-    }
-    v1.x = FacePoints[index][2].x - FacePoints[index][1].x;
-    v1.y = FacePoints[index][2].y- FacePoints[index][1].y;
-    v2.x = x - FacePoints[index][1].x;
-    v2.y = y - FacePoints[index][1].y;
-    if (cross(v2, v1) < 0) {
-        return false;
-    }
-    v1.x = FacePoints[index][3].x - FacePoints[index][2].x;
-    v1.y = FacePoints[index][3].y- FacePoints[index][2].y;
-    v2.x = x - FacePoints[index][2].x;
-    v2.y = y - FacePoints[index][2].y;
-    if (cross(v2, v1) < 0) {
-        return false;
-    }
-    v1.x = FacePoints[index][0].x - FacePoints[index][3].x;
-    v1.y = FacePoints[index][0].y- FacePoints[index][3].y;
-    v2.x = x - FacePoints[index][3].x;
-    v2.y = y - FacePoints[index][3].y;
-    if (cross(v2, v1) < 0) {
-        return false;
-    }
-    return true;
-}
-
-Vector2d invBilinear(Vector2d p, int index) {
-
-    Vector2d a = FacePoints[index][1];
-    Vector2d b = FacePoints[index][0];
-    Vector2d c = FacePoints[index][3];
-    Vector2d d = FacePoints[index][2];
-
-    Vector2d e = b - a;
-    Vector2d f = d - a;
-    Vector2d g = a - b + c - d;
-    Vector2d h = p - a;
-
-    float k2 = cross(g, f);
-    float k1 = cross(e, f) + cross(h, g);
-    float k0 = cross(h, e);
-
-    if( abs(k2) < 0.001 )
-    {
-        return Vector2d( (h.x*k1+f.x*k0)/(e.x*k1-g.x*k0), -k0/k1 );
-    }
-
-    float w = k1 * k1 - 4.0 * k0 * k2;
-    if (w < 0.0) return Vector2d(-1, 0);
-
-    w = sqrt(w);
-
-    float v = (-k1 - w) / (2.0 * k2);
-    float u = (h.x - f.x * v) / (e.x + g.x * v);
-
-    if (v < 0.0 || v > 1.0 || u < 0.0 || u > 1.0) {
-        v = (-k1 + w) / (2.0 * k2);
-        u = (h.x - f.x * v) / (e.x + g.x * v);
-    }
-    if (v < 0.0 || v > 1.0 || u < 0.0 || u > 1.0) {
-        v = -1.0;
-        u = -1.0;
-    }
-
-    return Vector2d(u, v);
-}
-
-extern "C"
-JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transformsCube(JNIEnv *env, jobject obj,
+extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transformsCube(JNIEnv *env, jobject obj,
                                                                        const jint count,
                                                                        const jintArray index,
                                                                        const jobjectArray facePointsX,
@@ -596,8 +589,7 @@ JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transformsCube(JNI
     }
 }
 
-extern "C"
-JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_endDraw(JNIEnv *env, jobject obj) {
+extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_endDraw(JNIEnv *env, jobject obj) {
 
     env->ReleaseByteArrayElements(pAllBGData, BGBufOut, 0);
 
