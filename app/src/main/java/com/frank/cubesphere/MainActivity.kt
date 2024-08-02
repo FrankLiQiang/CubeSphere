@@ -153,8 +153,8 @@ class MainActivity : ComponentActivity() {
             newCubeByteArray,
         )
 
-        drawSolid()
-        drawPicBall()
+//        drawSolid()
+//        drawPicBall()
         startDrawTimer()
 
         setContent {
