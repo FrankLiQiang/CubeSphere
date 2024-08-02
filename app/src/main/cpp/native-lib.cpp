@@ -11,24 +11,11 @@ using namespace std;
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
-static float DepthZ, CenterX, CenterY, CenterZ, Center_x, Center_y;
-static float HPI, W2PI, W0, R, r, FirstR;
-
-__attribute__((unused)) static int width, height, width00, height00, parent_width, parent_height;
+const double EPSILON = 0.0000000001, PI = 3.1416f;
+static int screenWidth, screenHeight, cubeWidth, cubeHeight, parentWidth, BGWidth, BGHeight2;
 static double factorA = 0, factorB = 0, factorC = 0, factorD = 0;
-const double EPSILON = 0.0000000001;
-static jbyte *BGBufOut;
-static jbyte *CubeBuf[6];
-static jbyte *CubeBufOut;
-static jbyte *BallBuf;
-static jbyte *FatherBuf;
-static jbyte *MotherBuf;
-static jbyte *BallBufOut;
-static jbyteArray pCubeOutData, pBallOutData, pAllBGData;
-static jbyteArray pCubeSrcData1, pCubeSrcData2, pCubeSrcData3, pCubeSrcData4, pCubeSrcData5, pCubeSrcData6
-        , pBallSrcData, pFatherSrcData, pMotherSrcData;
-static float sx, sy, parent_r;
-static int BGWidth, BGHeight2;
+static float DepthZ, CenterX, CenterY, CenterZ, Center_x, Center_y, HPI, W2PI, W0, R2, R22, r, FirstR, sx, sy, parent_r;
+static jbyte *CubeBuf[6], *BallBuf, *FatherBuf, *MotherBuf, *BGBufIn, *CubeBufOut, *BallBufOut;
 
 // 2D vector
 struct Vector2d {
@@ -153,14 +140,14 @@ void SolvingQuadratics(double a, double b, double c, vector<double> &t) {
     }
 }
 
-void LineIntersectSphere(Vector3d &E, double R, vector<Vector3d> &points) {
+void LineIntersectSphere(Vector3d &E, double Ra2, vector<Vector3d> &points) {
     Vector3d D = E - EYE;            //线段方向向量
 
     double a = (D.x * D.x) + (D.y * D.y) + (D.z * D.z);
     double b = (2 * D.x * (EYE.x - BallCenter.x) + 2 * D.y * (EYE.y - BallCenter.y) +
                 2 * D.z * (EYE.z - BallCenter.z));
     double c = ((EYE.x - BallCenter.x) * (EYE.x - BallCenter.x) + (EYE.y - BallCenter.y) * (EYE.y - BallCenter.y) +
-                (EYE.z - BallCenter.z) * (EYE.z - BallCenter.z)) - R * R;
+                (EYE.z - BallCenter.z) * (EYE.z - BallCenter.z)) - Ra2;
 
     vector<double> t;
     SolvingQuadratics(a, b, c, t);
@@ -201,8 +188,8 @@ void getPanel(Vector3d &p1, Vector3d &p2, Vector3d &p3, double &a, double &b, do
 }
 
 void getBallShowCenter() {
-    Center_x = width / 2;
-    Center_y = height / 2;        //if the 2D Ball center and screen center is same point.
+    Center_x = screenWidth / 2;
+    Center_y = screenHeight / 2;        //if the 2D Ball center and screen center is same point.
     //Center_y = (EYE.z - DepthZ) * ((BallCenter.y - EYE.y) / (EYE.z - BallCenter.z));
 }
 
@@ -211,16 +198,15 @@ bool isBack(Vector3d &p) {
 }
 
 double getLongitude(Vector3d &P, Vector3d &A, Vector3d &M) {
-    //点P 到 北极，球心连线的 垂足
-    Vector3d foot = GetFootOfPerpendicular(P, A, BallCenter);
-    Vector3d a = P - foot;            // 垂足到点P的方向向量
-    Vector3d b = M - BallCenter;        // 本初子午线与赤道的交点与地心的方向向量
+    Vector3d foot = GetFootOfPerpendicular(P, A, BallCenter);   //点P 到 北极，球心连线的 垂足
+    Vector3d a = P - foot;                                      // 垂足到点P的方向向量
+    Vector3d b = M - BallCenter;                                // 本初子午线与赤道的交点与地心的方向向量
 
     double c = (a.x * b.x + a.y * b.y + a.z * b.z) / sqrt(a.x * a.x + a.y * a.y + a.z * a.z)
                / sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
 
     if (isBack(P)) {
-        return 2 * 3.14159f - acos(c);
+        return 2 * PI - acos(c);
     }
     return acos(c);
 }
@@ -305,48 +291,58 @@ bool inquat(int index, float x, float y) {
     return true;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initializationBall(JNIEnv *env, jobject obj,
-                                                                           const jfloat Z,
-                                                                           const jfloat cx,
-                                                                           const jfloat cy,
-                                                                           const jfloat cz) {
+extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initialization(JNIEnv *env, jobject obj,
+                                                                                        const jint w, 
+                                                                                        const jint h,
+                                                                                        const jint bgW, 
+                                                                                        const jint bgH,
+                                                                                        const jint cubeW,
+                                                                                        const jint cubeH,
+                                                                                        const jint ballRawWidth,
+                                                                                        const jint ballRawHeight,
+                                                                                        const jint widthP,
+                                                                                        const jfloat e_x, 
+                                                                                        const jfloat e_y, 
+                                                                                        const jfloat e_z,
+                                                                                        const jfloat Z,
+                                                                                        const jfloat cx,
+                                                                                        const jfloat cy,
+                                                                                        const jfloat cz,
+                                                                                        const jfloat R0,
+                                                                                        const jfloat r0) {
+    screenWidth = w;
+    screenHeight = h;
+    EYE.set(e_x, e_y, e_z);
+    sx = (float)screenWidth / (float)bgW;
+    sy = (float)screenHeight / ((float)bgH / 2);
+    BGWidth = bgW;
+    BGHeight2 = bgH / 2;
     DepthZ = Z;
     CenterX = cx;
     CenterY = cy;
     CenterZ = cz;
     BallCenter.set(CenterX, CenterY, CenterZ);
-}
-
-extern "C"
-JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initializationBall2(JNIEnv *env, jobject obj,
-                                                                            const jint width0,
-                                                                            const jint height0,
-                                                                            const jfloat R0,
-                                                                            const jfloat r0,
-                                                                            const jbyteArray pSrcData,
-                                                                            const jint widthP,
-                                                                            const jint heightP,
-                                                                            const jbyteArray pSrcDataF,
-                                                                            const jbyteArray pSrcDataM,
-                                                                            const jbyteArray pOutData) {
-    HPI = height0 / 3.14159f;
-    W0 = width0;
-    W2PI = width0 / 3.14159f / 2.0f;
-    R = R0, r = r0, FirstR = r;
+    cubeWidth = cubeW;
+    cubeHeight = cubeH;
+    HPI = ballRawHeight / PI;
+    W0 = ballRawWidth;
+    W2PI = ballRawWidth / PI / 2f;
+    r = r0, FirstR = r;
+    R22 = R0 * R0;
+    R2 = 2 * R22;
     getBallShowCenter();
-    parent_width = widthP;
-    parent_height = heightP;
-    parent_r = parent_width / 2;
+    parentWidth = widthP;
+    parent_r = widthP / 2;
 
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < screenHeight; y++) {
         if (y < Center_y - r || y > Center_y + r) {
             continue;
         }
-        for (int x = 0; x < width; x++) {
+        for (int x = 0; x < screenWidth; x++) {
             if (getDistance2(x, y, Center_x, Center_y) < r) {
                 Vector3d E(x, y, DepthZ);
                 vector<Vector3d> points;
-                LineIntersectSphere(E, R, points);
+                LineIntersectSphere(E, R22, points);
                 for (auto it : points) {
                     if (it.z >= CenterZ) {
                         Vector3d P(it.x, it.y, it.z);
@@ -356,139 +352,49 @@ JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initializationBall
             }
         }
     }
-    BallBuf = env->GetByteArrayElements(pSrcData, 0);
-    FatherBuf = env->GetByteArrayElements(pSrcDataF, 0);
-    MotherBuf = env->GetByteArrayElements(pSrcDataM, 0);
-    BallBufOut = env->GetByteArrayElements(pOutData, 0);
-
-    pBallSrcData = pSrcData;
-    pFatherSrcData = pSrcDataF;
-    pMotherSrcData = pSrcDataM;
-    pBallOutData = pOutData;
 }
 
-extern "C"
-JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transformsBall(JNIEnv *env, jobject obj,
-                                                                       const jfloat ArcticX,
-                                                                       const jfloat ArcticY,
-                                                                       const jfloat ArcticZ,
-                                                                       const jfloat MeridianX,
-                                                                       const jfloat MeridianY,
-                                                                       const jfloat MeridianZ,
-                                                                       const jfloat r0) {
-    r = r0;
-    double scale = r / FirstR;
-    Vector3d Arctic(ArcticX, ArcticY, ArcticZ);
-    Vector3d Meridian(MeridianX, MeridianY, MeridianZ);
+extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_ReadPics(JNIEnv *env, jobject obj,
+                                                                                  const jbyteArray pBGData,
+                                                                                  const jbyteArray pSrcData1,
+                                                                                  const jbyteArray pSrcData2,
+                                                                                  const jbyteArray pSrcData3,
+                                                                                  const jbyteArray pSrcData4,
+                                                                                  const jbyteArray pSrcData5,
+                                                                                  const jbyteArray pSrcData6,
+                                                                                  const jbyteArray pBallData,
+                                                                                  const jbyteArray pBallDataF,
+                                                                                  const jbyteArray pBallDataM,
+                                                                                  const jbyteArray pOutBall,
+                                                                                  const jbyteArray pOutCube) {
 
-    getPanel(Arctic, Meridian, BallCenter, factorA, factorB, factorC, factorD);
+    BGBufIn = env->GetByteArrayElements(pBGData, 0);
 
-    double latitude, longitude;
-    int original_point, pixel_point, x0, y0;
+    CubeBuf[0] = env->GetByteArrayElements(pSrcData1, 0);
+    CubeBuf[1] = env->GetByteArrayElements(pSrcData2, 0);
+    CubeBuf[2] = env->GetByteArrayElements(pSrcData3, 0);
+    CubeBuf[3] = env->GetByteArrayElements(pSrcData4, 0);
+    CubeBuf[4] = env->GetByteArrayElements(pSrcData5, 0);
+    CubeBuf[5] = env->GetByteArrayElements(pSrcData6, 0);
 
-    float alpha1 = 3.14159f / 6.0f;
-    float alpha2 = 3.14159f * 5 / 6.0f;
-    for (int y = 0; y < height; y++) {
-        if (y < Center_y - r || y > Center_y + r) {
-            for (int x = 0; x < width; x++) {
-                pixel_point = (width * y + x) * 4;
-                int x_index = round(x / sx);
-                int y_index = round(y / sy) + BGHeight2;
-                original_point = (y_index * BGWidth + x_index) * 4;
-                *(BallBufOut + pixel_point) = *(BGBufOut + original_point);
-                *(BallBufOut + pixel_point + 1) = *(BGBufOut + original_point + 1);
-                *(BallBufOut + pixel_point + 2) = *(BGBufOut + original_point + 2);
-                *(BallBufOut + pixel_point + 3) = -1;
-            }
-            continue;
-        }
-        for (int x = 0; x < width; x++) {
-            pixel_point = (width * y + x) * 4;
-            if (getDistance2(x, y, Center_x, Center_y) < r) {
-                Vector3d P = myMap[y][x];
-                if (r == FirstR) {
-                    P = myMap[y][x];
-                } else {
-                    x0 = (int) ((double) width / 2.0f +
-                                ((double) x - (double) width / 2.0f) / scale);
-                    y0 = (int) ((double) height / 2.0f +
-                                ((double) y - (double) height / 2.0f) / scale);
-                    if (x0 < 0) x0 = 0;
-                    if (x0 >= width) x0 = width - 1;
-                    if (y0 < 0) y0 = 0;
-                    if (y0 >= height) y0 = height - 1;
-                    P = myMap[y0][x0];
-                }
-                latitude = acos(1 - getDistance32(P, Arctic) / (2 * R * R));
-                longitude = getLongitude(P, Arctic, Meridian);
-                if (latitude < alpha1) {
-                    int x_index = (round)(parent_r - cos(longitude + 3.1416) * parent_r * (latitude / alpha1));
-                    int y_index = (round)(parent_r - sin(longitude + 3.1416) * parent_r * (latitude / alpha1));
-                    original_point = (y_index * parent_width + x_index) * 4;
-                    *(BallBufOut + pixel_point) = *(FatherBuf + original_point);
-                    *(BallBufOut + pixel_point + 1) = *(FatherBuf + original_point + 1);
-                    *(BallBufOut + pixel_point + 2) = *(FatherBuf + original_point + 2);
-                    *(BallBufOut + pixel_point + 3) = -1;
-                } else if (latitude > alpha2) {
-                    int x_index = (round)(parent_r - cos(longitude) * parent_r * ((3.1416 - latitude) / (3.1416 - alpha2)));
-                    int y_index = (round)(parent_r - sin(longitude) * parent_r * ((3.1416 - latitude) / (3.1416 - alpha2)));
-                    original_point = (y_index * parent_width + x_index) * 4;
-                    *(BallBufOut + pixel_point) = *(MotherBuf + original_point);
-                    *(BallBufOut + pixel_point + 1) = *(MotherBuf + original_point + 1);
-                    *(BallBufOut + pixel_point + 2) = *(MotherBuf + original_point + 2);
-                    *(BallBufOut + pixel_point + 3) = -1;
-                } else {
-                    original_point = ((int) (HPI * latitude) * W0 + (int) (W2PI * longitude)) * 4;
-                    *(BallBufOut + pixel_point) = *(BallBuf + original_point);
-                    *(BallBufOut + pixel_point + 1) = *(BallBuf + original_point + 1);
-                    *(BallBufOut + pixel_point + 2) = *(BallBuf + original_point + 2);
-                    *(BallBufOut + pixel_point + 3) = -1;
-                }
-            } else {
-                int x_index = round(x / sx);
-                int y_index = round(y / sy) + BGHeight2;
-                original_point = (y_index * BGWidth + x_index) * 4;
-                *(BallBufOut + pixel_point) = *(BGBufOut + original_point);
-                *(BallBufOut + pixel_point + 1) = *(BGBufOut + original_point + 1);
-                *(BallBufOut + pixel_point + 2) = *(BGBufOut + original_point + 2);
-                *(BallBufOut + pixel_point + 3) = -1;
-            }
-        }
-    }
-//    HPI = (double) height0 / 3.14159f;
-//    W0 = width0;
-//    W2PI = (double) width0 / 3.14159f / 2.0f;
-//    R = R0, r = r0, FirstR = r;
+    BallBuf = env->GetByteArrayElements(pBallData, 0);
+    FatherBuf = env->GetByteArrayElements(pBallDataF, 0);
+    MotherBuf = env->GetByteArrayElements(pBallDataM, 0);
 
-    return 0;
-}
-
-extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_setEYE(JNIEnv *env, jobject obj,
-                                                                 const jint w, const jint h,
-                                                                 const jfloat e_x, const jfloat e_y, const jfloat e_z,
-                                                                 const jint bgW, const jint bgH,
-                                                                 const jbyteArray pBGData) {
-    width = w;
-    height = h;
-    EYE.set(e_x, e_y, e_z);
-    sx = (float)width / (float)bgW;
-    sy = (float)height / ((float)bgH / 2);
-    BGWidth = bgW;
-    BGHeight2 = bgH / 2;
-    pAllBGData = pBGData;
-    BGBufOut = env->GetByteArrayElements(pBGData, 0);
+    CubeBufOut = env->GetByteArrayElements(pOutCube, 0);
+    BallBufOut = env->GetByteArrayElements(pOutBall, 0);
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeVisible(JNIEnv *env, jobject obj,
-                                                                      const jfloat xE,
-                                                                      const jfloat yE,
-                                                                      const jfloat zE,
-                                                                      const jfloat xF,
-                                                                      const jfloat yF,
-                                                                      const jfloat zF,
-                                                                      const jfloat xG,
-                                                                      const jfloat yG,
-                                                                      const jfloat zG) {
+                                                                                        const jfloat xE,
+                                                                                        const jfloat yE,
+                                                                                        const jfloat zE,
+                                                                                        const jfloat xF,
+                                                                                        const jfloat yF,
+                                                                                        const jfloat zF,
+                                                                                        const jfloat xG,
+                                                                                        const jfloat yG,
+                                                                                        const jfloat zG) {
     Vector3d E(xE, yE, zE);
     Vector3d F(xF, yF, zF);
     Vector3d G(xG, yG, zG);
@@ -506,40 +412,101 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeV
     }
 }
 
-extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_initializationCube(JNIEnv *env, jobject obj,
-                                                          const jint w00,
-                                                          const jint h00,
-                                                          const jbyteArray pSrcData1,
-                                                          const jbyteArray pSrcData2,
-                                                          const jbyteArray pSrcData3,
-                                                          const jbyteArray pSrcData4,
-                                                          const jbyteArray pSrcData5,
-                                                          const jbyteArray pSrcData6,
-                                                          const jbyteArray pOutData) {
-    width00 = w00;
-    height00 = h00;
-    CubeBuf[0] = env->GetByteArrayElements(pSrcData1, 0);
-    CubeBuf[1] = env->GetByteArrayElements(pSrcData2, 0);
-    CubeBuf[2] = env->GetByteArrayElements(pSrcData3, 0);
-    CubeBuf[3] = env->GetByteArrayElements(pSrcData4, 0);
-    CubeBuf[4] = env->GetByteArrayElements(pSrcData5, 0);
-    CubeBuf[5] = env->GetByteArrayElements(pSrcData6, 0);
-    CubeBufOut = env->GetByteArrayElements(pOutData, 0);
+extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transformsBall(JNIEnv *env, jobject obj,
+                                                                                       const jfloat ArcticX,
+                                                                                       const jfloat ArcticY,
+                                                                                       const jfloat ArcticZ,
+                                                                                       const jfloat MeridianX,
+                                                                                       const jfloat MeridianY,
+                                                                                       const jfloat MeridianZ,
+                                                                                       const jfloat r0) {
+    r = r0;
+    double scale = r / FirstR;
+    Vector3d Arctic(ArcticX, ArcticY, ArcticZ);
+    Vector3d Meridian(MeridianX, MeridianY, MeridianZ);
 
-    pCubeSrcData1 = pSrcData1;
-    pCubeSrcData2 = pSrcData2;
-    pCubeSrcData3 = pSrcData3;
-    pCubeSrcData4 = pSrcData4;
-    pCubeSrcData5 = pSrcData5;
-    pCubeSrcData6 = pSrcData6;
-    pCubeOutData = pOutData;
+    getPanel(Arctic, Meridian, BallCenter, factorA, factorB, factorC, factorD);
+
+    double latitude, longitude;
+    int original_point, pixel_point, x0, y0;
+
+    float alpha1 = 0.523598f;       //PI / 6.0f;
+    float alpha2 = 2.61799f;        //PI * 5 / 6.0f;
+    for (int y = 0; y < screenHeight; y++) {
+        if (y < Center_y - r || y > Center_y + r) {
+            for (int x = 0; x < screenWidth; x++) {
+                pixel_point = (screenWidth * y + x) * 4;
+                int x_index = round(x / sx);
+                int y_index = round(y / sy) + BGHeight2;
+                original_point = (y_index * BGWidth + x_index) * 4;
+                *(BallBufOut + pixel_point) = *(BGBufIn + original_point);
+                *(BallBufOut + pixel_point + 1) = *(BGBufIn + original_point + 1);
+                *(BallBufOut + pixel_point + 2) = *(BGBufIn + original_point + 2);
+                *(BallBufOut + pixel_point + 3) = -1;
+            }
+            continue;
+        }
+        for (int x = 0; x < screenWidth; x++) {
+            pixel_point = (screenWidth * y + x) * 4;
+            if (getDistance2(x, y, Center_x, Center_y) < r) {
+                Vector3d P = myMap[y][x];
+                if (r == FirstR) {
+                    P = myMap[y][x];
+                } else {
+                    x0 = (int) ((double) screenWidth / 2.0f +
+                                ((double) x - (double) screenWidth / 2.0f) / scale);
+                    y0 = (int) ((double) screenHeight / 2.0f +
+                                ((double) y - (double) screenHeight / 2.0f) / scale);
+                    if (x0 < 0) x0 = 0;
+                    if (x0 >= screenWidth) x0 = screenWidth - 1;
+                    if (y0 < 0) y0 = 0;
+                    if (y0 >= screenHeight) y0 = screenHeight - 1;
+                    P = myMap[y0][x0];
+                }
+                latitude = acos(1 - getDistance32(P, Arctic) / R2);
+                longitude = getLongitude(P, Arctic, Meridian);
+                if (latitude < alpha1) {
+                    int x_index = (round)(parent_r - cos(longitude + PI) * parent_r * (latitude / alpha1));
+                    int y_index = (round)(parent_r - sin(longitude + PI) * parent_r * (latitude / alpha1));
+                    original_point = (y_index * parent_width + x_index) * 4;
+                    *(BallBufOut + pixel_point) = *(FatherBuf + original_point);
+                    *(BallBufOut + pixel_point + 1) = *(FatherBuf + original_point + 1);
+                    *(BallBufOut + pixel_point + 2) = *(FatherBuf + original_point + 2);
+                    *(BallBufOut + pixel_point + 3) = -1;
+                } else if (latitude > alpha2) {
+                    int x_index = (round)(parent_r - cos(longitude) * parent_r * ((PI - latitude) / (PI - alpha2)));
+                    int y_index = (round)(parent_r - sin(longitude) * parent_r * ((PI - latitude) / (PI - alpha2)));
+                    original_point = (y_index * parent_width + x_index) * 4;
+                    *(BallBufOut + pixel_point) = *(MotherBuf + original_point);
+                    *(BallBufOut + pixel_point + 1) = *(MotherBuf + original_point + 1);
+                    *(BallBufOut + pixel_point + 2) = *(MotherBuf + original_point + 2);
+                    *(BallBufOut + pixel_point + 3) = -1;
+                } else {
+                    original_point = ((int) (HPI * latitude) * W0 + (int) (W2PI * longitude)) * 4;
+                    *(BallBufOut + pixel_point) = *(BallBuf + original_point);
+                    *(BallBufOut + pixel_point + 1) = *(BallBuf + original_point + 1);
+                    *(BallBufOut + pixel_point + 2) = *(BallBuf + original_point + 2);
+                    *(BallBufOut + pixel_point + 3) = -1;
+                }
+            } else {
+                int x_index = round(x / sx);
+                int y_index = round(y / sy) + BGHeight2;
+                original_point = (y_index * BGWidth + x_index) * 4;
+                *(BallBufOut + pixel_point) = *(BGBufIn + original_point);
+                *(BallBufOut + pixel_point + 1) = *(BGBufIn + original_point + 1);
+                *(BallBufOut + pixel_point + 2) = *(BGBufIn + original_point + 2);
+                *(BallBufOut + pixel_point + 3) = -1;
+            }
+        }
+    }
+    return 0;
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transformsCube(JNIEnv *env, jobject obj,
-                                                                       const jint count,
-                                                                       const jintArray index,
-                                                                       const jobjectArray facePointsX,
-                                                                       const jobjectArray facePointsY) {
+                                                                                       const jint count,
+                                                                                       const jintArray index,
+                                                                                       const jobjectArray facePointsX,
+                                                                                       const jobjectArray facePointsY) {
 
     int original_point, pixel_point, X, Y;
     jint* picIndex = env->GetIntArrayElements((jintArray)index, 0);
@@ -557,18 +524,18 @@ extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transfo
     }
 
     bool isInside;
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            pixel_point = (width * y + x) * 4;
+    for (int y = 0; y < screenHeight; y++) {
+        for (int x = 0; x < screenWidth; x++) {
+            pixel_point = (screenWidth * y + x) * 4;
             Vector2d p(x, y);
             isInside = false;
             for (int i = 0; i < count; i++) {
                 if (inquat(i, x, y)) {
                     isInside = true;
                     Vector2d v2 = invBilinear(p, i);
-                    X = (int) ((float) width00 * v2.x);
-                    Y = (int) ((float) height00 * v2.y);
-                    original_point = (Y * width00 + X) * 4;
+                    X = (int) ((float) cubeWidth * v2.x);
+                    Y = (int) ((float) cubeHeight * v2.y);
+                    original_point = (Y * cubeWidth + X) * 4;
                     *(CubeBufOut + pixel_point) = *(CubeBuf[picIndex[i]] + original_point);
                     *(CubeBufOut + pixel_point + 1) = *(CubeBuf[picIndex[i]] + original_point + 1);
                     *(CubeBufOut + pixel_point + 2) = *(CubeBuf[picIndex[i]] + original_point + 2);
@@ -580,29 +547,11 @@ extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                 int y_index = round(y / sy);
 
                 original_point = (y_index * BGWidth + x_index) * 4;
-                *(CubeBufOut + pixel_point) = *(BGBufOut + original_point);
-                *(CubeBufOut + pixel_point + 1) = *(BGBufOut + original_point + 1);
-                *(CubeBufOut + pixel_point + 2) = *(BGBufOut + original_point + 2);
+                *(CubeBufOut + pixel_point) = *(BGBufIn + original_point);
+                *(CubeBufOut + pixel_point + 1) = *(BGBufIn + original_point + 1);
+                *(CubeBufOut + pixel_point + 2) = *(BGBufIn + original_point + 2);
                 *(CubeBufOut + pixel_point + 3) = -1;
             }
         }
     }
-}
-
-extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_endDraw(JNIEnv *env, jobject obj) {
-
-    env->ReleaseByteArrayElements(pAllBGData, BGBufOut, 0);
-
-    env->ReleaseByteArrayElements(pCubeSrcData1, CubeBuf[0], 0);
-    env->ReleaseByteArrayElements(pCubeSrcData2, CubeBuf[1], 0);
-    env->ReleaseByteArrayElements(pCubeSrcData3, CubeBuf[2], 0);
-    env->ReleaseByteArrayElements(pCubeSrcData4, CubeBuf[3], 0);
-    env->ReleaseByteArrayElements(pCubeSrcData5, CubeBuf[4], 0);
-    env->ReleaseByteArrayElements(pCubeSrcData6, CubeBuf[5], 0);
-    env->ReleaseByteArrayElements(pCubeOutData, CubeBufOut, 0);
-
-    env->ReleaseByteArrayElements(pBallSrcData, BallBuf, 0);
-    env->ReleaseByteArrayElements(pFatherSrcData, FatherBuf, 0);
-    env->ReleaseByteArrayElements(pMotherSrcData, MotherBuf, 0);
-    env->ReleaseByteArrayElements(pBallOutData, BallBufOut, 0);
 }
