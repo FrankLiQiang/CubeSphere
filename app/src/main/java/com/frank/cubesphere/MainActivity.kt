@@ -156,11 +156,13 @@ class MainActivity : ComponentActivity() {
 //        drawSolid()
 //        drawPicBall()
         startDrawTimer()
-
         setContent {
             CubeSphereTheme {
                 // A surface container using the 'background' color from the theme
                 Column(Modifier.fillMaxSize()) {
+//                    if (indexBall >= -1) {
+//                        ComposableSurfaceView()
+//                    }
                     drawCube(Modifier.weight(1.0f))
                     drawBall(Modifier.weight(1.0f))
                 }

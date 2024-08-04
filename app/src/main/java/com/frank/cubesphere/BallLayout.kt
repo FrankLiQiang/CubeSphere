@@ -1,8 +1,16 @@
 package com.frank.cubesphere
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
+import android.os.Looper
+import android.util.Log
 import android.view.MotionEvent
+import android.view.SurfaceHolder
+import android.view.SurfaceView
+import android.view.ViewGroup
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -13,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.viewinterop.AndroidView
 import com.frank.cubesphere.Common.PointXYZ
 import com.frank.cubesphere.Common.getDistance
 import com.frank.cubesphere.Common.getNewPoint
@@ -147,6 +157,12 @@ fun bmp2byteBall() {
 }
 
 fun drawPicBall() {
+//    if (Looper.myLooper() == Looper.getMainLooper()) {
+//        Log.i("5678", "Main Thread")
+//    } else {
+//        Log.i("5678", "Main Thread !!!!!!!!!!!!!!")
+//    }
+
     try {
         mainActivity.transformsBall(Arctic.x, Arctic.y, Arctic.z, Meridian.x, Meridian.y, Meridian.z, r)
         newBallBMP.copyPixelsFromBuffer(ByteBuffer.wrap(newBallByteArray))
@@ -205,4 +221,50 @@ fun turnBall() {
     convertBall()
     drawPicBall()
     indexBall = 1 - indexBall
+}
+
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun ComposableSurfaceView(modifier: Modifier= Modifier){
+    AndroidView(factory = {context ->
+        SurfaceView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            if (indexBall >= -1) {
+                holder.addCallback(MySurfaceCallback())//添加回调
+            }
+        }
+
+    }, modifier = modifier)
+}
+
+@Preview
+@Composable
+fun MainSurfaceView(){
+    ComposableSurfaceView()
+}
+
+class MySurfaceCallback: SurfaceHolder.Callback {
+    private var _canvas: Canvas?= null
+    override fun surfaceCreated(p0: SurfaceHolder) {
+        _canvas =p0.lockCanvas()
+        _canvas?.drawColor(Color.WHITE)//设置背景颜色
+        drawPicBall()
+//        _canvas?.drawCircle(600f, 600f, 650f, Paint().apply { color=Color.RED})
+        _canvas?.drawBitmap(newCubeBMP!!, 0f, 0f, Paint().apply { color=Color.RED})
+        _canvas?.drawBitmap(newBallBMP, 0f, Common._screenHeight / 2.0f, Paint().apply { color=Color.RED})
+//        _canvas?.drawBitmap(backgroundBMP!!, 0f, 0f, Paint().apply { color=Color.RED})
+        p0.unlockCanvasAndPost(_canvas)
+    }
+
+    override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
+        // 在这里处理Surface尺寸改变
+    }
+
+    override fun surfaceDestroyed(p0: SurfaceHolder) {
+        // 在这里处理Surface销毁
+    }
 }

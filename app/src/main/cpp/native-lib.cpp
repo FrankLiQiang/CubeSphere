@@ -462,24 +462,30 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                     int x_index = (round)(parent_r - cos(longitude + PI) * parent_r * (latitude / alpha1));
                     int y_index = (round)(parent_r - sin(longitude + PI) * parent_r * (latitude / alpha1));
                     original_point = (y_index * parentWidth + x_index) * 4;
-                    *(BallBufOut + pixel_point) = *(FatherBuf + original_point);
-                    *(BallBufOut + pixel_point + 1) = *(FatherBuf + original_point + 1);
-                    *(BallBufOut + pixel_point + 2) = *(FatherBuf + original_point + 2);
-                    *(BallBufOut + pixel_point + 3) = -1;
+                    if (original_point >= 0 && original_point < parentWidth * parentWidth * 4) {
+                        *(BallBufOut + pixel_point) = *(FatherBuf + original_point);
+                        *(BallBufOut + pixel_point + 1) = *(FatherBuf + original_point + 1);
+                        *(BallBufOut + pixel_point + 2) = *(FatherBuf + original_point + 2);
+                        *(BallBufOut + pixel_point + 3) = -1;
+                    }
                 } else if (latitude > alpha2) {
                     int x_index = (round)(parent_r - cos(longitude) * parent_r * ((PI - latitude) / (PI - alpha2)));
                     int y_index = (round)(parent_r - sin(longitude) * parent_r * ((PI - latitude) / (PI - alpha2)));
                     original_point = (y_index * parentWidth + x_index) * 4;
-                    *(BallBufOut + pixel_point) = *(MotherBuf + original_point);
-                    *(BallBufOut + pixel_point + 1) = *(MotherBuf + original_point + 1);
-                    *(BallBufOut + pixel_point + 2) = *(MotherBuf + original_point + 2);
-                    *(BallBufOut + pixel_point + 3) = -1;
+                    if (original_point >= 0 && original_point < parentWidth * parentWidth * 4) {
+                        *(BallBufOut + pixel_point) = *(MotherBuf + original_point);
+                        *(BallBufOut + pixel_point + 1) = *(MotherBuf + original_point + 1);
+                        *(BallBufOut + pixel_point + 2) = *(MotherBuf + original_point + 2);
+                        *(BallBufOut + pixel_point + 3) = -1;
+                    }
                 } else {
                     original_point = ((int) (HPI * latitude) * W0 + (int) (W2PI * longitude)) * 4;
-                    *(BallBufOut + pixel_point) = *(BallBuf + original_point);
-                    *(BallBufOut + pixel_point + 1) = *(BallBuf + original_point + 1);
-                    *(BallBufOut + pixel_point + 2) = *(BallBuf + original_point + 2);
-                    *(BallBufOut + pixel_point + 3) = -1;
+                    if (original_point >= 0 && original_point < W0 * W0 * 8) {
+                        *(BallBufOut + pixel_point) = *(BallBuf + original_point);
+                        *(BallBufOut + pixel_point + 1) = *(BallBuf + original_point + 1);
+                        *(BallBufOut + pixel_point + 2) = *(BallBuf + original_point + 2);
+                        *(BallBufOut + pixel_point + 3) = -1;
+                    }
                 }
             } else {
                 int x_index = round(x / sx);
@@ -496,7 +502,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
 }
 
 extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transformsCube(JNIEnv *env, jobject obj,
-                                                                                       const jint count,
+                                                                                       jint count,
                                                                                        const jintArray index,
                                                                                        const jobjectArray facePointsX,
                                                                                        const jobjectArray facePointsY) {
@@ -529,10 +535,12 @@ extern "C" JNIEXPORT void JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                     X = (int) ((float) cubeWidth * v2.x);
                     Y = (int) ((float) cubeWidth * v2.y);
                     original_point = (Y * cubeWidth + X) * 4;
-                    *(CubeBufOut + pixel_point) = *(CubeBuf[picIndex[i]] + original_point);
-                    *(CubeBufOut + pixel_point + 1) = *(CubeBuf[picIndex[i]] + original_point + 1);
-                    *(CubeBufOut + pixel_point + 2) = *(CubeBuf[picIndex[i]] + original_point + 2);
-                    *(CubeBufOut + pixel_point + 3) = -1;
+                    if (original_point >= 0 && original_point < cubeWidth * cubeWidth * 4) {
+                        *(CubeBufOut + pixel_point) = *(CubeBuf[picIndex[i]] + original_point);
+                        *(CubeBufOut + pixel_point + 1) = *(CubeBuf[picIndex[i]] + original_point + 1);
+                        *(CubeBufOut + pixel_point + 2) = *(CubeBuf[picIndex[i]] + original_point + 2);
+                        *(CubeBufOut + pixel_point + 3) = -1;
+                    }
                 }
             }
             if (!isInside) {

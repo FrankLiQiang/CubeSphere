@@ -263,7 +263,8 @@ fun drawSolid() {
     try {
         mainActivity.transformsCube(count, index, facePointsX, facePointsY)
         newCubeBMP!!.copyPixelsFromBuffer(ByteBuffer.wrap(newCubeByteArray))
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        e.toString()
     }
 }
 
