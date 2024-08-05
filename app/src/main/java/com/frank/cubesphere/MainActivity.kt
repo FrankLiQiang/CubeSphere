@@ -184,7 +184,7 @@ class MainActivity : ComponentActivity() {
             mediaPlayer = MediaPlayer()
             mediaPlayer!!.setAudioStreamType(AudioManager.STREAM_MUSIC)
             mediaPlayer!!.setOnCompletionListener(beepListener)
-            val file = resources.openRawResourceFd(R.raw.music)
+            val file = resources.openRawResourceFd(R.raw.audio9)
             try {
                 mediaPlayer!!.setDataSource(file.fileDescriptor, file.startOffset, file.length)
                 file.close()
