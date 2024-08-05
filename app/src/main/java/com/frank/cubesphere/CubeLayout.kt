@@ -274,7 +274,7 @@ fun turnCube() {
     saveOldPoints()
     firstDistance = 0f
     isSingle = true
-    EndX = 30f
+    EndX = 50f
     EndY = CubeCenter.y
     convert()
     drawSolid()

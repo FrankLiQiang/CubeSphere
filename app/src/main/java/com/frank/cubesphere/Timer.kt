@@ -8,14 +8,15 @@ private var taskB: B? = null
 private var delayA = 0L
 private var delayB = 0L
 var isStopTimer = true
-var _timer: Timer? = null
+var _timerA: Timer? = null
+var _timerB: Timer? = null
 var isDrawCube = true
 
 internal class A : TimerTask() {
     override fun run() {
         if (!isStopTimer) {
             isDrawCube = true
-            draw()
+            drawA()
         }
     }
 }
@@ -24,30 +25,28 @@ internal class B : TimerTask() {
     override fun run() {
         if (!isStopTimer) {
             isDrawCube = false
-            draw()
+            drawB()
         }
     }
 }
 
-fun draw() {
+fun drawA() {
     if (!isStopTimer) {
-        if (isDrawCube) {
-            if (delayA > 0) {
-                resetCube()
-            }
-            delayA = 0
-            turnCube()
-            taskB = B()
-            Timer().schedule(taskB, 0)
-        } else {
-            if (delayB > 0) {
-                resetBall()
-            }
-            delayB = 0
-            turnBall()
-            taskA = A()
-            Timer().schedule(taskA, 0)
+        if (delayA > 0) {
+            resetCube()
         }
+        delayA = 0
+        turnCube()
+    }
+}
+
+fun drawB() {
+    if (!isStopTimer) {
+        if (delayB > 0) {
+            resetBall()
+        }
+        delayB = 0
+        turnBall()
     }
 }
 
@@ -57,10 +56,13 @@ fun setDelay(iDelay: Long) {
 }
 
 fun startDrawTimer() {
-    _timer = Timer()
+    _timerA = Timer()
+    _timerB = Timer()
     isStopTimer = false
     taskA = A()
-    _timer!!.schedule(taskA, delayA)
+    taskB = B()
+    _timerA!!.schedule(taskA, delayA, 5)
+    _timerB!!.schedule(taskB, delayB, 10)
 }
 
 fun stopDrawTimer() {
