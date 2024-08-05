@@ -7,6 +7,7 @@
 
 using namespace std;
 
+//#define family
 #define LOG_TAG "JNI.LOG"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -423,8 +424,10 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
     double latitude, longitude;
     int original_point, pixel_point, x0, y0;
 
+#ifdef family
     float alpha1 = 0.523598f;       //PI / 6.0f;
     float alpha2 = 2.61799f;        //PI * 5 / 6.0f;
+#endif
     for (int y = 0; y < screenHeight; y++) {
         if (y < Center_y - r || y > Center_y + r) {
             for (int x = 0; x < screenWidth; x++) {
@@ -458,6 +461,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                 }
                 latitude = acos(1 - getDistance32(P, Arctic) / R2);
                 longitude = getLongitude(P, Arctic, Meridian);
+#ifdef family
                 if (latitude < alpha1) {
                     int x_index = (round)(parent_r - cos(longitude + PI) * parent_r * (latitude / alpha1));
                     int y_index = (round)(parent_r - sin(longitude + PI) * parent_r * (latitude / alpha1));
@@ -479,6 +483,7 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                         *(BallBufOut + pixel_point + 3) = -1;
                     }
                 } else {
+#endif
                     original_point = ((int) (HPI * latitude) * W0 + (int) (W2PI * longitude)) * 4;
                     if (original_point >= 0 && original_point < W0 * W0 * 8) {
                         *(BallBufOut + pixel_point) = *(BallBuf + original_point);
@@ -486,7 +491,9 @@ extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_transfo
                         *(BallBufOut + pixel_point + 2) = *(BallBuf + original_point + 2);
                         *(BallBufOut + pixel_point + 3) = -1;
                     }
+#ifdef family
                 }
+#endif
             } else {
                 int x_index = round(x / sx);
                 int y_index = round(y / sy) + BGHeight2;
