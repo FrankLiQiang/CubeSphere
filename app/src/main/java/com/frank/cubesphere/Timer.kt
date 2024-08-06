@@ -77,6 +77,7 @@ fun stopDrawTimer() {
     }
 }
 
+//https://blog.csdn.net/Danny_llp/article/details/108679492?spm=1001.2101.3001.6650.5&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogOpenSearchComplete%7ERate-5-108679492-blog-111768548.235%5Ev43%5Epc_blog_bottom_relevance_base3&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogOpenSearchComplete%7ERate-5-108679492-blog-111768548.235%5Ev43%5Epc_blog_bottom_relevance_base3&utm_relevant_index=10
 //https://juejin.cn/post/7082645693441474573
 //https://developer.android.com/reference/kotlin/android/view/SurfaceView
 //https://qiita.com/ymshun/items/a1447bdfcea8ef24d765
