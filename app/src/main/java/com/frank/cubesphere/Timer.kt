@@ -77,6 +77,7 @@ fun stopDrawTimer() {
     }
 }
 
+//https://juejin.cn/post/7082645693441474573
 //https://developer.android.com/reference/kotlin/android/view/SurfaceView
 //https://qiita.com/ymshun/items/a1447bdfcea8ef24d765
 //https://stackoverflow.com/questions/19019825/android-setpixels-explanation-and-example
