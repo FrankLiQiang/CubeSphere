@@ -61,8 +61,8 @@ fun startDrawTimer() {
     isStopTimer = false
     taskA = A()
     taskB = B()
-    _timerA!!.schedule(taskA, delayA, 5)
-    _timerB!!.schedule(taskB, delayB, 10)
+    _timerA!!.schedule(taskA, delayA, 50)
+    _timerB!!.schedule(taskB, delayB, 100)
 }
 
 fun stopDrawTimer() {

@@ -1,7 +1,6 @@
 package com.frank.cubesphere
 
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.MediaPlayer.OnCompletionListener
@@ -10,12 +9,15 @@ import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import com.frank.cubesphere.ui.theme.CubeSphereTheme
 import java.io.IOException
-import java.nio.ByteBuffer
 import kotlin.system.exitProcess
 
 val originalCubeBMP = arrayOfNulls<Bitmap>(6)
@@ -41,7 +43,6 @@ class MainActivity : ComponentActivity() {
     )
 
     private external fun ReadPics(
-        pBGData: ByteArray?,
         pSrcData1: ByteArray?,
         pSrcData2: ByteArray?,
         pSrcData3: ByteArray?,
@@ -130,6 +131,12 @@ class MainActivity : ComponentActivity() {
             r,
         )
         ReadPics(
+            originalCubeByteArray[0],
+            originalCubeByteArray[1],
+            originalCubeByteArray[2],
+            originalCubeByteArray[3],
+            originalCubeByteArray[4],
+            originalCubeByteArray[5],
             ballByteArray,
             fatherByteArray,
             motherByteArray,
@@ -143,12 +150,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             CubeSphereTheme {
                 // A surface container using the 'background' color from the theme
-                Column(Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.bg),
+                        contentDescription = null,
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Column(Modifier.fillMaxSize()) {
 //                    if (indexBall >= -1) {
 //                        ComposableSurfaceView()
 //                    }
-                    drawCube(Modifier.weight(1.0f))
-                    drawBall(Modifier.weight(1.0f))
+                        drawCube(Modifier.weight(1.0f))
+                        drawBall(Modifier.weight(1.0f))
+                    }
                 }
             }
         }
@@ -189,4 +206,5 @@ class MainActivity : ComponentActivity() {
         exitProcess(0)
     }
 }
+
 

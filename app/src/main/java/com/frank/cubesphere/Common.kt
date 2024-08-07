@@ -127,19 +127,5 @@ object Common {
     class PointF internal constructor() {
         var x = 0f
         var y = 0f
-
-        constructor(X: Float, Y: Float) {
-            x = X
-            y = Y
-        }
-
-         fun reset(X: Float, Y: Float) {
-            x = X
-            y = Y
-        }
-
-       operator fun minus(other: PointF): PointF {
-            return PointF(this.x - other.x, this.y - other.y)
-        }
     }
 }
