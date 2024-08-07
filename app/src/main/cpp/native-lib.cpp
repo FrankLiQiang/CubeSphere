@@ -534,6 +534,7 @@ Java_com_frank_cubesphere_MainActivity_transformsCube(JNIEnv *env, jobject obj,
                         *(CubeBufOut + pixel_point + 2) = *(CubeBuf[picIndex[i]] + original_point + 2);
                         *(CubeBufOut + pixel_point + 3) = -1;
                     }
+                    break;
                 }
             }
             if (!isInside) {
