@@ -18,8 +18,6 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import kotlin.system.exitProcess
 
-var backgroundBMP: Bitmap? = null
-lateinit var backgroundByteArray: ByteArray
 val originalCubeBMP = arrayOfNulls<Bitmap>(6)
 lateinit var mainActivity: MainActivity
 
@@ -27,8 +25,6 @@ class MainActivity : ComponentActivity() {
     private external fun initialization(
         screenWidth: Int,
         screenHeight: Int,
-        bgW: Int,
-        bgH: Int,
         cubeW: Int,
         ballRawWidth: Int,
         ballRawHeight: Int,
@@ -113,17 +109,12 @@ class MainActivity : ComponentActivity() {
             Common._screenWidth / 2f, Common._screenHeight / 4f,
             (Common._screenHeight * 2).toFloat()
         )
-        backgroundBMP = (resources.getDrawable(R.drawable.bg) as BitmapDrawable).bitmap
-        backgroundBmp2byte()
-
         createCube()
         ballInit()
 
         initialization(
             Common._screenWidth,
             Common._screenHeight / 2,
-            backgroundBMP!!.width,
-            backgroundBMP!!.height,
             originalBallBMP.width,
             originalBallBMP.height,
             cubeWidth,
@@ -139,13 +130,6 @@ class MainActivity : ComponentActivity() {
             r,
         )
         ReadPics(
-            backgroundByteArray,
-            originalCubeByteArray[0],
-            originalCubeByteArray[1],
-            originalCubeByteArray[2],
-            originalCubeByteArray[3],
-            originalCubeByteArray[4],
-            originalCubeByteArray[5],
             ballByteArray,
             fatherByteArray,
             motherByteArray,
@@ -206,11 +190,3 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-private fun backgroundBmp2byte() {
-    val buf: ByteBuffer
-    val bytes: Int = backgroundBMP!!.byteCount
-    buf = ByteBuffer.allocate(bytes)
-    backgroundBMP!!.copyPixelsToBuffer(buf)
-    backgroundByteArray = buf.array()
-}
