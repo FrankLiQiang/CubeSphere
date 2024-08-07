@@ -19,7 +19,6 @@ import com.frank.cubesphere.Common.getNewSizePoint
 import com.frank.cubesphere.Common.resetPointF
 import java.nio.ByteBuffer
 
-lateinit var newCubeByteArray: ByteArray
 var CubeCenter: Common.PointXYZ = Common.PointXYZ()
 var StartX = 0f
 var StartY = 0f
@@ -36,6 +35,9 @@ lateinit var pZ: FloatArray
 lateinit var P: Array<Common.PointXYZ?>
 lateinit var oldP: Array<Common.PointXYZ?>
 lateinit var p: Array<Common.PointF?>
+var v1 = Common.PointF()
+var v2 = Common.PointF()
+lateinit var a, b, c, d, e, f, g, h, pTmp: Common.PointF
 val face = arrayOf(
     intArrayOf(0, 3, 2, 1),
     intArrayOf(3, 7, 6, 2),
@@ -44,15 +46,13 @@ val face = arrayOf(
     intArrayOf(4, 5, 6, 7),
     intArrayOf(0, 4, 7, 3)
 )
-val originalCubeByteArray = arrayOfNulls<ByteArray>(6)
 var newCubeBMP: Bitmap? = null
 var diff0 = 0f
 var diff1 = 0f
 var diff2 = 0f
 var diff3 = 0f
 var diff5 = 0f
-var facePointsX = Array(3) { FloatArray(4) }
-var facePointsY = Array(3) { FloatArray(4) }
+var facePoints = Array(3) { Common.PointF(4) }
 var firstDistance = 0f
 var lastDistance = 0f
 var indexCube by mutableStateOf(0L)
@@ -177,6 +177,7 @@ fun createCube() {
     P = arrayOfNulls(PointCount)
     oldP = arrayOfNulls(PointCount)
     p = arrayOfNulls(PointCount)
+    screenHeight = Common._screenHeight / 2f
     edgeLength = Common._screenWidth / 2f
     CubeCenter.reset(Common._screenWidth / 2f, Common._screenHeight / 4f, -edgeLength / 2)
     diff0 = 0.289f * edgeLength
@@ -202,16 +203,9 @@ fun createCube() {
 fun bmp2byteCube() {
     var bytes: Int
     var buf: ByteBuffer
-    for (i in 0 until FaceCount) {
-        bytes = originalCubeBMP[i]!!.byteCount
-        buf = ByteBuffer.allocate(bytes)
-        originalCubeBMP[i]!!.copyPixelsToBuffer(buf)
-        originalCubeByteArray[i] = buf.array()
-    }
     bytes = newCubeBMP!!.byteCount
     buf = ByteBuffer.allocate(bytes)
     newCubeBMP!!.copyPixelsToBuffer(buf)
-    newCubeByteArray = buf.array()
 }
 
 fun saveOldPoints() {
@@ -256,16 +250,11 @@ fun drawSolid() {
     }
     for (i in 0 until count) {
         for (j in 0..3) {
-            facePointsX[i][j] = p[face[index[i]][j]]!!.x
-            facePointsY[i][j] = p[face[index[i]][j]]!!.y
+            facePoints[i][j].x = p[face[index[i]][j]]!!.x
+            facePoints[i][j].y = p[face[index[i]][j]]!!.y
         }
     }
-    try {
-        mainActivity.transformsCube(count, index, facePointsX, facePointsY)
-        newCubeBMP!!.copyPixelsFromBuffer(ByteBuffer.wrap(newCubeByteArray))
-    } catch (e: Exception) {
-        e.toString()
-    }
+    transformsCube(count, index)
 }
 
 fun turnCube() {
@@ -279,4 +268,88 @@ fun turnCube() {
     convert()
     drawSolid()
     indexCube = 1 - indexCube
+}
+
+fun cross(a: Common.PointF, b: Common.PointF): Float {
+    return a.x * b.y - a.y * b.x;
+}
+
+fun inquat(index: int, x: Float, y: Float): Boolean {
+    for (j in 0..3) {
+        var j1 = (j + 1) % 4
+        v1.x = facePoints[index][j1].x - facePoints[index][j].x
+        v1.y = facePoints[index][j1].y- facePoints[index][j].y
+        v2.x = x - facePoints[index][j].x
+        v2.y = y - facePoints[index][j].y
+        if (cross(v2, v1) < 0) {
+            return false
+        }
+    }
+    return true
+}
+
+fun transformsCube(count: Int, index: IntArray)
+    var isInside = false
+    for (y in 0 until screenHeight) {
+        for (x in 0 until Common._screenWidth) {
+            isInside = false;
+            pTmp.reset(x, y)
+            for (i in 0 until count; i++) {
+                if (inquat(i, x, y)) {
+                    isInside = true
+                    v2 = invBilinear(pTmp, i);
+                    if (v2.x in 0..1 && v2.y in 0..1) {
+                        X = (int) ((float) cubeWidth * v2.x)
+                        Y = (int) ((float) cubeWidth * v2.y)
+                        newCubeBMP.setPixel(x, y, originalCubeBMP[index[i]].getPixel(X, Y))
+                    }
+                    break
+                }
+            }
+            if (!isInside) {
+                newCubeBMP.setPixel(x, y, 0)
+            }
+        }
+    }
+}
+
+fun invBilinear(p :Common.PointF, index: Int) :Common.PointF {
+
+    a = facePoints[index][1];
+    b = facePoints[index][0];
+    c = facePoints[index][3];
+    d = facePoints[index][2];
+
+    e = b - a;
+    f = d - a;
+    g = a - b + c - d;
+    h = p - a;
+
+    Float k2 = cross(g, f);
+    Float k1 = cross(e, f) + cross(h, g);
+    Float k0 = cross(h, e);
+
+    if( abs(k2) < 0.001 )
+    {
+        return Common.PointF( (h.x*k1+f.x*k0)/(e.x*k1-g.x*k0), -k0/k1 );
+    }
+
+    Float w = k1 * k1 - 4.0 * k0 * k2;
+    if (w < 0.0) return Common.PointF(-1, 0);
+
+    w = sqrt(w);
+
+    Float v = (-k1 - w) / (2.0 * k2);
+    Float u = (h.x - f.x * v) / (e.x + g.x * v);
+
+    if (v < 0.0 || v > 1.0 || u < 0.0 || u > 1.0) {
+        v = (-k1 + w) / (2.0 * k2);
+        u = (h.x - f.x * v) / (e.x + g.x * v);
+    }
+    if (v < 0.0 || v > 1.0 || u < 0.0 || u > 1.0) {
+        v = -1.0;
+        u = -1.0;
+    }
+
+    return Common.PointF(u, v)
 }
