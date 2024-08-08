@@ -453,16 +453,17 @@ Java_com_frank_cubesphere_MainActivity_transformsBall(JNIEnv *env, jobject obj,
     return 0;
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_com_frank_cubesphere_MainActivity_isCubeVisible(JNIEnv *env, jobject obj,
-                                                                                       const jfloat xE,
-                                                                                       const jfloat yE,
-                                                                                       const jfloat zE,
-                                                                                       const jfloat xF,
-                                                                                       const jfloat yF,
-                                                                                       const jfloat zF,
-                                                                                       const jfloat xG,
-                                                                                       const jfloat yG,
-                                                                                       const jfloat zG) {
+extern "C" JNIEXPORT jint JNICALL
+Java_com_frank_cubesphere_MainActivity_isCubeVisible(JNIEnv *env, jobject obj,
+                                                     const jfloat xE,
+                                                     const jfloat yE,
+                                                     const jfloat zE,
+                                                     const jfloat xF,
+                                                     const jfloat yF,
+                                                     const jfloat zF,
+                                                     const jfloat xG,
+                                                     const jfloat yG,
+                                                     const jfloat zG) {
     Vector3d E(xE, yE, zE);
     Vector3d F(xF, yF, zF);
     Vector3d G(xG, yG, zG);

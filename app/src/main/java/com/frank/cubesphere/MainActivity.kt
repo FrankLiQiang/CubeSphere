@@ -160,9 +160,6 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize()
                     )
                     Column(Modifier.fillMaxSize()) {
-//                    if (indexBall >= -1) {
-//                        ComposableSurfaceView()
-//                    }
                         drawCube(Modifier.weight(1.0f))
                         drawBall(Modifier.weight(1.0f))
                     }
@@ -206,5 +203,3 @@ class MainActivity : ComponentActivity() {
         exitProcess(0)
     }
 }
-
-
