@@ -257,33 +257,15 @@ struct quat {
 
 bool inquat(int index, float x, float y) {
     Vector2d v1, v2;
-    v1.x = FacePoints[index][1].x - FacePoints[index][0].x;
-    v1.y = FacePoints[index][1].y - FacePoints[index][0].y;
-    v2.x = x - FacePoints[index][0].x;
-    v2.y = y - FacePoints[index][0].y;
-    if (cross(v2, v1) < 0) {
-        return false;
-    }
-    v1.x = FacePoints[index][2].x - FacePoints[index][1].x;
-    v1.y = FacePoints[index][2].y - FacePoints[index][1].y;
-    v2.x = x - FacePoints[index][1].x;
-    v2.y = y - FacePoints[index][1].y;
-    if (cross(v2, v1) < 0) {
-        return false;
-    }
-    v1.x = FacePoints[index][3].x - FacePoints[index][2].x;
-    v1.y = FacePoints[index][3].y - FacePoints[index][2].y;
-    v2.x = x - FacePoints[index][2].x;
-    v2.y = y - FacePoints[index][2].y;
-    if (cross(v2, v1) < 0) {
-        return false;
-    }
-    v1.x = FacePoints[index][0].x - FacePoints[index][3].x;
-    v1.y = FacePoints[index][0].y - FacePoints[index][3].y;
-    v2.x = x - FacePoints[index][3].x;
-    v2.y = y - FacePoints[index][3].y;
-    if (cross(v2, v1) < 0) {
-        return false;
+    for (int i = 0; i < 4; i++) {
+        int i1 = (i + 1) % 4;
+        v1.x = FacePoints[index][i1].x - FacePoints[index][i].x;
+        v1.y = FacePoints[index][i1].y - FacePoints[index][i].y;
+        v2.x = x - FacePoints[index][i].x;
+        v2.y = y - FacePoints[index][i].y;
+        if (cross(v2, v1) < 0) {
+            return false;
+        }
     }
     return true;
 }
