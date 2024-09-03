@@ -115,7 +115,7 @@ fun drawCube(modifier: Modifier = Modifier) {
                         }
                     }
                     MotionEvent.ACTION_UP -> {
-                        setDelay(5000)
+                        setDelay(500)
                         startDrawTimer()
                     }
                 }

@@ -12,7 +12,7 @@ using namespace std;
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
-const double EPSILON = 0.0000000001, PI = 3.1416f;
+const double EPSILON = 0.00000001, PI = 3.1416f;
 static int screenWidth, screenHeight, cubeWidth, parentWidth;
 static double factorA = 0, factorB = 0, factorC = 0, factorD = 0;
 static float DepthZ, CenterX, CenterY, CenterZ, Center_x, Center_y, HPI, W2PI, W0, R2, R22, r, FirstR, parent_r;
@@ -155,7 +155,7 @@ void LineIntersectSphere(Vector3d &E, double Ra2, vector<Vector3d> &points) {
 }
 
 double getDistance2(float x1, float y1, float x2, float y2) {
-    return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+    return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
 }
 
 double getDistance32(Vector3d &P1, Vector3d &P2) {
@@ -177,8 +177,7 @@ Vector3d GetFootOfPerpendicular(const Vector3d &p0, const Vector3d &p1, const Ve
     return retVal;
 }
 
-void
-getPanel(Vector3d &p1, Vector3d &p2, Vector3d &p3, double &a, double &b, double &c, double &d) {
+void getPanel(Vector3d &p1, Vector3d &p2, Vector3d &p3, double &a, double &b, double &c, double &d) {
     a = ((p2.y - p1.y) * (p3.z - p1.z) - (p2.z - p1.z) * (p3.y - p1.y));
     b = ((p2.z - p1.z) * (p3.x - p1.x) - (p2.x - p1.x) * (p3.z - p1.z));
     c = ((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x));
@@ -251,10 +250,6 @@ Vector2d invBilinear(Vector2d p, int index) {
     return Vector2d(u, v);
 }
 
-struct quat {
-    Vector2d points[4];
-};
-
 bool inquat(int index, float x, float y) {
     Vector2d v1, v2;
     for (int i = 0; i < 4; i++) {
@@ -311,7 +306,7 @@ Java_com_frank_cubesphere_MainActivity_initialization(JNIEnv *env, jobject obj,
             continue;
         }
         for (int x = 0; x < screenWidth; x++) {
-            if (getDistance2(x, y, Center_x, Center_y) < r) {
+            if (getDistance2(x, y, Center_x, Center_y) < r * r) {
                 Vector3d E(x, y, DepthZ);
                 vector<Vector3d> points;
                 LineIntersectSphere(E, R22, points);
@@ -392,7 +387,7 @@ Java_com_frank_cubesphere_MainActivity_transformsBall(JNIEnv *env, jobject obj,
         for (int x = 0; x < screenWidth; x++) {
             pixel_point = (screenWidth * y + x) * 4;
             if (x < Center_x - r || x > Center_x + r ||
-                getDistance2(x, y, Center_x, Center_y) >= r) {
+                getDistance2(x, y, Center_x, Center_y) >= r * r) {
                 *(BallBufOut + pixel_point) = 0;
                 *(BallBufOut + pixel_point + 1) = 0;
                 *(BallBufOut + pixel_point + 2) = 0;

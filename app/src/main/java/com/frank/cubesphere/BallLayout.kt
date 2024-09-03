@@ -82,7 +82,7 @@ fun drawBall(modifier: Modifier = Modifier) {
                         indexBall = 1 - indexBall
                     }
                     MotionEvent.ACTION_UP -> {
-                        setDelay(5000)
+                        setDelay(500)
                         startDrawTimer()
                     }
                 }
